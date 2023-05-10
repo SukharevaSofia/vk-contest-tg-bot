@@ -1,9 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	_ "github.com/lib/pq"
 	"io"
 	"log"
 	"net/http"
@@ -11,18 +12,18 @@ import (
 	"os"
 )
 
+const telegramPollTimeout = 3600
+
 var telegramBaseUrl = "https://api.telegram.org/bot" + os.Getenv("TELEGRAM_API_KEY")
 var postSendResponseUrl = telegramBaseUrl + "/sendMessage"
 
-const telegramPollTimeout = 3600
-
-func tgGetRequests() {
-	log.Default().Println("tgGetRequests has been called")
-
+func tgManageRequests(db *sql.DB) {
+	log.Default().Println("tgManageRequests has been called")
 	postUserUrl := fmt.Sprintf(
 		"%s/getUpdates?timeout=%d",
 		telegramBaseUrl,
 		telegramPollTimeout)
+
 	userRequestsRes, err := http.Get(postUserUrl)
 	log.Println("Getting the requests from users")
 	if err != nil {
@@ -42,36 +43,46 @@ func tgGetRequests() {
 		if value.UpdateId > offset {
 			offset = value.UpdateId
 		}
-
-		textMessage := "Такой команды не существует :("
-
+		textMessage := NO_SUCH_COMMAND
 		switch value.Message.Text {
 		case "/start":
-			kBoard := startMenu()
-			textMessage = "С помощью этого бота вы можете следить за своими эмоциями в удобном формате."
+			kBoard := menuKboard()
+			textMessage = TEXT_BOT_DESCRIPTION
 			postSendMessage = url.Values{
 				"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":         {textMessage},
 				"reply_markup": {kBoard}}
-		case "Новая запись":
-			//TODO
-			textMessage = "Hi " + value.Message.From.Username + "!"
+		case NEW_ENTRY:
+			textMessage = MOOD_CHECK
+			kBoard := moodKboard()
+			postSendMessage = url.Values{
+				"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
+				"text":         {textMessage},
+				"reply_markup": {kBoard}}
+		case SHOW_ENTRIES:
+			//textMessage = getDataFromDb(value.Message.Chat.Id)
 			postSendMessage = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
-		case "Показать записи":
+		case ABOUT_DEV:
 			//TODO
-			textMessage = "Hello " + value.Message.From.Username + "!"
-			postSendMessage = url.Values{
-				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
-				"text":    {textMessage}}
-		case "Больше о разработчике":
-			//TODO
-			textMessage = "Dev info"
+			textMessage = DEV_INF
 			postSendMessage = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
 		default:
+			if isMood(value.Message.Text) {
+				log.Println("СОЗДАНИЕ ТАБЛИЦЫ ", value.Message.Chat.Id)
+				createTable(db, value.Message.Chat.Id)
+				addToDb(value.Message.Chat.Id, value.Message.Text)
+				textMessage = INFO_SAVED
+				kBoard := menuKboard()
+				postSendMessage = url.Values{
+					"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
+					"text":         {textMessage},
+					"reply_markup": {kBoard}}
+				break
+			}
 			postSendMessage = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
@@ -86,18 +97,4 @@ func tgGetRequests() {
 	if offset > 0 {
 		_, _ = http.Get(fmt.Sprintf("%s/getUpdates?offset=%d&limit=1", telegramBaseUrl, offset+1))
 	}
-}
-
-func startMenu() string {
-	var keyboard = tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Новая запись"),
-			tgbotapi.NewKeyboardButton("Показать записи"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Больше о разработчике"),
-		),
-	)
-	kboard, _ := json.Marshal(keyboard)
-	return string(kboard)
 }

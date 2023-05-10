@@ -1,7 +1,9 @@
 package main
 
 func main() {
-	tgGetRequests()
+	db := createDb("vkcontest")
+	tgManageRequests(db)
+
 }
 
 //TODO: different dbs for different users
