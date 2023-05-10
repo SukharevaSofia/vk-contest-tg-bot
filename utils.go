@@ -1,6 +1,9 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type TelegramRequests struct {
 	Ok     bool `json:"ok"`
@@ -42,6 +45,7 @@ const (
 	DEV_INF                     = "Спасибо за ваш интерес к проекту!\nGithub: https://github.com/SukharevaSofia\n"
 	ABOUT_DEV                   = "О разработчике"
 	NO_DATA                     = "В таблице пока нет данных!"
+	DATABASE_URL                = "DATABASE_URL"
 )
 
 const (
@@ -98,6 +102,11 @@ func moodKboard() string {
 
 	kboard, _ := json.Marshal(keyboard)
 	return string(kboard)
+}
+
+type dateMoodPair struct {
+	date time.Time
+	mood string
 }
 
 // Source of the keyboard structs and their functions https://github.com/go-telegram-bot-api/

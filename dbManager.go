@@ -12,12 +12,12 @@ import (
 
 func createDb(dbName string) *sql.DB {
 	log.Println("createDb called")
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", os.Getenv(DATABASE_URL))
 	if err != nil {
 		log.Println("Could not open the database: ", err)
 		panic(err)
 	} else {
-		log.Println("Opened: ", os.Getenv("DATABASE_URL"))
+		log.Println("Opened: ", os.Getenv(DATABASE_URL))
 	}
 
 	log.Println("Database creation: ", dbName)
@@ -32,8 +32,7 @@ func createDb(dbName string) *sql.DB {
 }
 
 func createTable(db *sql.DB, tableName int) {
-	log.Println(db.Stats())
-	name := strconv.Itoa(tableName)
+	name := "u" + strconv.Itoa(tableName)
 	log.Println("Table ", name, " creation")
 	query := fmt.Sprintf("CREATE TABLE public.u%d ( date timestamp, mood varchar)", tableName)
 	_, err := db.Exec(query)
@@ -51,13 +50,12 @@ func createTable(db *sql.DB, tableName int) {
 func addToDb(userId int, mood string) {
 	log.Println("addToDb called")
 
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", os.Getenv(DATABASE_URL))
 	if err != nil {
 		log.Println("Could not open the database: ", err)
 		panic(err)
-	} else {
-		log.Println("Opened: ", os.Getenv("DATABASE_URL"))
 	}
+	log.Println("Opened: ", os.Getenv(DATABASE_URL))
 	defer db.Close()
 
 	query := fmt.Sprintf(`INSERT INTO public.u%d (date, mood)  VALUES ($1, $2)`, userId)
@@ -70,22 +68,37 @@ func addToDb(userId int, mood string) {
 	}
 }
 
-//func getDataFromDb(userId int) string {
-//	message := ""
-//	log.Println("getDataFromDb called")
-//	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-//	if err != nil {
-//		log.Println("Could not open the database: ", err)
-//		message = NO_DATA
-//		return message
-//	}
-//	log.Println("Opened: ", os.Getenv("DATABASE_URL"))
-//	defer db.Close()
-//	query := fmt.Sprintf(`SELECT * FROM u%d`, userId)
-//	rows, _ := db.Query(query)
-//	log.Println(rows)
-//	for row = rows.Next(){
-//		log.Println(row)
-//	}
-//	return message
-//}
+func getDataFromDb(userId int) string {
+	log.Println("getDataFromDb called")
+
+	response := ""
+
+	db, err := sql.Open("postgres", os.Getenv(DATABASE_URL))
+	if err != nil {
+		log.Println("Could not open the database: ", err)
+		response = NO_DATA
+		return response
+	}
+	defer db.Close()
+
+	log.Println("Opened: ", os.Getenv(DATABASE_URL))
+	query := fmt.Sprintf(`SELECT * FROM u%d`, userId)
+	rows, _ := db.Query(query)
+	defer rows.Close()
+
+	diaryEntries := make([]dateMoodPair, 0)
+	for rows.Next() {
+		var recordData dateMoodPair
+		if err = rows.Scan(&recordData.date, &recordData.mood); err != nil {
+			log.Fatal(err)
+		} else {
+			diaryEntries = append(diaryEntries, recordData)
+		}
+	}
+
+	for _, entry := range diaryEntries {
+		response += fmt.Sprintf("%s: %s\n", entry.date.Format("2006-01-02 15:04:05"), entry.mood)
+	}
+
+	return response
+}

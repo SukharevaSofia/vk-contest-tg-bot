@@ -19,22 +19,22 @@ var postSendResponseUrl = telegramBaseUrl + "/sendMessage"
 
 func tgManageRequests(db *sql.DB) {
 	log.Default().Println("tgManageRequests has been called")
-	postUserUrl := fmt.Sprintf(
+	getUpdatesURL := fmt.Sprintf(
 		"%s/getUpdates?timeout=%d",
 		telegramBaseUrl,
 		telegramPollTimeout)
 
-	userRequestsRes, err := http.Get(postUserUrl)
+	userRequestsResponse, err := http.Get(getUpdatesURL)
 	log.Println("Getting the requests from users")
 	if err != nil {
 		fmt.Println("Failed to get users' requests")
 		os.Exit(1)
 	}
 
-	userRequestsBody, _ := io.ReadAll(userRequestsRes.Body)
+	userRequestsBody, _ := io.ReadAll(userRequestsResponse.Body)
 
 	var requestList TelegramRequests
-	var postSendMessage url.Values
+	var sendMessageFields url.Values
 
 	_ = json.Unmarshal(userRequestsBody, &requestList)
 
@@ -48,26 +48,26 @@ func tgManageRequests(db *sql.DB) {
 		case "/start":
 			kBoard := menuKboard()
 			textMessage = TEXT_BOT_DESCRIPTION
-			postSendMessage = url.Values{
+			sendMessageFields = url.Values{
 				"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":         {textMessage},
 				"reply_markup": {kBoard}}
 		case NEW_ENTRY:
 			textMessage = MOOD_CHECK
 			kBoard := moodKboard()
-			postSendMessage = url.Values{
+			sendMessageFields = url.Values{
 				"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":         {textMessage},
 				"reply_markup": {kBoard}}
 		case SHOW_ENTRIES:
-			//textMessage = getDataFromDb(value.Message.Chat.Id)
-			postSendMessage = url.Values{
+			textMessage = getDataFromDb(value.Message.Chat.Id)
+			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
 		case ABOUT_DEV:
 			//TODO
 			textMessage = DEV_INF
-			postSendMessage = url.Values{
+			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
 		default:
@@ -77,20 +77,20 @@ func tgManageRequests(db *sql.DB) {
 				addToDb(value.Message.Chat.Id, value.Message.Text)
 				textMessage = INFO_SAVED
 				kBoard := menuKboard()
-				postSendMessage = url.Values{
+				sendMessageFields = url.Values{
 					"chat_id":      {fmt.Sprintf("%d", value.Message.From.Id)},
 					"text":         {textMessage},
 					"reply_markup": {kBoard}}
 				break
 			}
-			postSendMessage = url.Values{
+			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
 		}
-		a, _ := http.PostForm(postSendResponseUrl, postSendMessage)
+		response, _ := http.PostForm(postSendResponseUrl, sendMessageFields)
 		log.Println("request ", value.Message.Text)
-		log.Println("response :", postSendMessage)
-		log.Println("has sent with status " + string(a.Status))
+		log.Println("response :", sendMessageFields)
+		log.Println("has sent with status " + string(response.Status))
 	}
 
 	// drop processed messages
