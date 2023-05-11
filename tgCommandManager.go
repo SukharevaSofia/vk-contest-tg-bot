@@ -60,12 +60,12 @@ func tgManageRequests(db *sql.DB) {
 				"text":         {textMessage},
 				"reply_markup": {kBoard}}
 		case SHOW_ENTRIES:
+			createTable(db, value.Message.Chat.Id)
 			textMessage = getDataFromDb(value.Message.Chat.Id)
 			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
 		case ABOUT_DEV:
-			//TODO
 			textMessage = DEV_INF
 			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},

@@ -76,14 +76,18 @@ func getDataFromDb(userId int) string {
 	db, err := sql.Open("postgres", os.Getenv(DATABASE_URL))
 	if err != nil {
 		log.Println("Could not open the database: ", err)
-		response = NO_DATA
+		response = NO_DATA + "\nError: " + err.Error()
 		return response
 	}
 	defer db.Close()
 
 	log.Println("Opened: ", os.Getenv(DATABASE_URL))
 	query := fmt.Sprintf(`SELECT * FROM u%d`, userId)
-	rows, _ := db.Query(query)
+	rows, err := db.Query(query)
+	if err != nil || rows == nil {
+		return NO_DATA
+	}
+
 	defer rows.Close()
 
 	diaryEntries := make([]dateMoodPair, 0)
@@ -99,6 +103,8 @@ func getDataFromDb(userId int) string {
 	for _, entry := range diaryEntries {
 		response += fmt.Sprintf("%s: %s\n", entry.date.Format("2006-01-02 15:04:05"), entry.mood)
 	}
-
+	if response == "" {
+		response = NO_DATA
+	}
 	return response
 }
