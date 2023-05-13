@@ -101,7 +101,7 @@ func getDataFromDb(userId int) string {
 	}
 
 	for _, entry := range diaryEntries {
-		response += fmt.Sprintf("%s: %s\n", entry.date.Format("2006-01-02 15:04:05"), entry.mood)
+		response += fmt.Sprintf("UTC %s: %s\n", entry.date.Format("2006-01-02 15:04:05"), entry.mood)
 	}
 	if response == "" {
 		response = NO_DATA

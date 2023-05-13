@@ -70,6 +70,12 @@ func tgManageRequests(db *sql.DB) {
 			sendMessageFields = url.Values{
 				"chat_id": {fmt.Sprintf("%d", value.Message.From.Id)},
 				"text":    {textMessage}}
+		case COMMAND_LIST:
+			textMessage = HELP
+			sendMessageFields = url.Values{
+				"chat_id":    {fmt.Sprintf("%d", value.Message.From.Id)},
+				"text":       {textMessage},
+				"parse_mode": {"MarkdownV2"}}
 		default:
 			if isMood(value.Message.Text) {
 				log.Println("СОЗДАНИЕ ТАБЛИЦЫ ", value.Message.Chat.Id)

@@ -42,10 +42,19 @@ const (
 	INFO_SAVED                  = "Данные были записаны."
 	NEW_ENTRY                   = "Новая запись"
 	SHOW_ENTRIES                = "Показать записи"
-	DEV_INF                     = "Спасибо за ваш интерес к проекту!\nGithub: https://github.com/SukharevaSofia\n"
-	ABOUT_DEV                   = "О разработчике"
-	NO_DATA                     = "В таблице пока нет данных!"
-	DATABASE_URL                = "DATABASE_URL"
+	DEV_INF                     = "Спасибо за ваш интерес к проекту!" +
+		"\nGithub: https://github.com/SukharevaSofia" +
+		"\nTelegram: @Topinamburka" +
+		"\nMail: work@sssofya.ru"
+	ABOUT_DEV    = "О разработчике"
+	COMMAND_LIST = "Список команд"
+	NO_DATA      = "В таблице пока нет данных!"
+	DATABASE_URL = "DATABASE_URL"
+	HELP         = "Доступные команды:\n" +
+		"\n`Новая запись` — добавляет новую запись в дневник наблюдений" +
+		"\n`Показать записи` — выводит ранее введённые в дневник данные" +
+		"\n`О разработчике` — контактная информация" +
+		"\n`Список команд` — выводит список доступных команд"
 )
 
 const (
@@ -74,6 +83,7 @@ func menuKboard() string {
 		),
 		NewKeyboardButtonRow(
 			NewKeyboardButton(ABOUT_DEV),
+			NewKeyboardButton(COMMAND_LIST),
 		),
 	)
 	kboard, _ := json.Marshal(keyboard)
